@@ -1,0 +1,1045 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nextcloud Forms Export / Import</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      margin: 0;
+      padding: 1.5rem;
+      background: #f5f5f5;
+      color: #333;
+    }
+
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      text-align: center;
+      color: #0082c9;
+      margin-bottom: 0.5rem;
+    }
+
+    .subtitle {
+      text-align: center;
+      color: #666;
+      margin-bottom: 1.5rem;
+    }
+
+    .info-box {
+      background: #e8f4fd;
+      border: 1px solid #b3d9f2;
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.5rem;
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    .info-box strong { color: #0082c9; }
+
+    .info-box ol {
+      margin: 0.5rem 0 0 0;
+      padding-left: 1.25rem;
+    }
+
+    .info-box li { margin-bottom: 0.25rem; }
+
+    .panels {
+      display: flex;
+      gap: 2rem;
+      flex-wrap: wrap;
+    }
+
+    .panel {
+      flex: 1;
+      min-width: 340px;
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 1.5rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    .panel h2 {
+      margin-top: 0;
+      color: #0082c9;
+      font-size: 1.25rem;
+      border-bottom: 2px solid #e8f4fd;
+      padding-bottom: 0.5rem;
+    }
+
+    .panel label {
+      display: block;
+      font-weight: 600;
+      margin-top: 1rem;
+      margin-bottom: 0.25rem;
+      font-size: 0.9rem;
+    }
+
+    .panel label:first-of-type { margin-top: 0; }
+
+    .panel input[type="text"],
+    .panel input[type="password"],
+    .panel input[type="number"] {
+      width: 100%;
+      padding: 0.5rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 0.9rem;
+    }
+
+    .panel input[type="file"] {
+      width: 100%;
+      padding: 0.4rem 0;
+      font-size: 0.9rem;
+    }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin-top: 1rem;
+      font-weight: normal;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+
+    .checkbox-label input[type="checkbox"] { margin: 0; cursor: pointer; }
+
+    .btn {
+      display: block;
+      width: 100%;
+      margin-top: 1.25rem;
+      padding: 0.7rem;
+      background: #0082c9;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn:hover { background: #006ba7; }
+    .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .log-area {
+      margin-top: 1rem;
+      background: #fafafa;
+      border: 1px solid #eee;
+      border-radius: 4px;
+      padding: 0.75rem;
+      font-family: "SF Mono", "Fira Code", "Fira Mono", Menlo, Consolas, monospace;
+      font-size: 0.82rem;
+      line-height: 1.6;
+      max-height: 300px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .log-area:empty { display: none; }
+
+    .log-info { color: #555; }
+    .log-success { color: #2d8a4e; }
+    .log-error { color: #d32f2f; }
+
+    .progress-container {
+      margin-top: 1rem;
+      display: none;
+    }
+
+    .progress-container.active {
+      display: block;
+    }
+
+    .progress-container progress {
+      width: 100%;
+      height: 1.2rem;
+      border-radius: 4px;
+      appearance: none;
+    }
+
+    .progress-container progress::-webkit-progress-bar {
+      background: #eee;
+      border-radius: 4px;
+    }
+
+    .progress-container progress::-webkit-progress-value {
+      background: #0082c9;
+      border-radius: 4px;
+      transition: width 0.3s ease;
+    }
+
+    .progress-container progress::-moz-progress-bar {
+      background: #0082c9;
+      border-radius: 4px;
+    }
+
+    .progress-label {
+      font-size: 0.82rem;
+      color: #666;
+      margin-top: 0.25rem;
+      text-align: center;
+    }
+
+    .btn-cancel {
+      display: none;
+      width: 100%;
+      margin-top: 0.5rem;
+      padding: 0.5rem;
+      background: #d32f2f;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-cancel:hover { background: #b71c1c; }
+    .btn-cancel.active { display: block; }
+
+    .url-warning {
+      color: #e65100;
+      font-size: 0.82rem;
+      margin-top: 0.25rem;
+      display: none;
+    }
+
+    .url-warning.active { display: block; }
+
+    @media (max-width: 760px) {
+      .panels { flex-direction: column; }
+      .panel { min-width: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Nextcloud Forms Export / Import</h1>
+    <p class="subtitle">Export forms from one server and import them into another</p>
+
+    <div class="info-box">
+      <strong>How to use:</strong>
+      <ol>
+        <li><strong>Export</strong>: Enter the source server URL, credentials, and form ID, then click "Export Form as JSON".</li>
+        <li><strong>Import</strong>: Enter the target server URL, credentials, select the exported JSON file, then click "Import Form from JSON".</li>
+      </ol>
+    </div>
+
+    <div class="info-box">
+      <strong>Finding the Form ID or Hash:</strong>
+      You can use either the <strong>numeric Form ID</strong> or the <strong>hash</strong> from the form URL.
+      The hash is the string visible in your Nextcloud URL, e.g.:
+      <code>https://cloud.example.com/apps/forms/rPXD5oJeNjJozgn6</code> — here <code>rPXD5oJeNjJozgn6</code> is the hash.
+      You can also paste the full URL directly into the "Form ID, Hash, or URL" field. The tool will automatically resolve it.
+    </div>
+
+    <div class="info-box">
+      <strong>Note on CORS (Cross-Origin Requests):</strong>
+      This tool runs in your browser and makes requests directly to your Nextcloud server.
+      If the server is on a different domain, your browser may block these requests due to CORS policy.
+      Four ways to resolve this:
+      <ol>
+        <li><strong>Browser Extension</strong>: Install a CORS-unblocking extension such as
+          "<a href="https://chromewebstore.google.com/detail/cors-unblock/lfhmikememgdcahcdlaciloancbhjino" target="_blank" rel="noopener">CORS Unblock</a>" (Chrome / Edge / Brave) or
+          "<a href="https://addons.mozilla.org/firefox/addon/cors-unblock/" target="_blank" rel="noopener">CORS Unblock</a>" (Firefox).
+          Enable it, reload this page, and requests should go through.
+        </li>
+        <li><strong>Disable CORS in Chrome / Chromium</strong>: Launch with <code>--disable-web-security</code> and a separate user-data directory.<br>
+          <strong>macOS:</strong><br>
+          <code>open -n "/Applications/Google Chrome.app" --args --user-data-dir="$HOME/chrome-cors-dev" --disable-web-security</code><br>
+          <strong>Windows (PowerShell):</strong><br>
+          <code>& "${env:PROGRAMFILES}\Google\Chrome\Application\chrome.exe" --user-data-dir="$env:USERPROFILE\chrome-cors-dev" --disable-web-security</code><br>
+          <strong>Linux:</strong><br>
+          <code>google-chrome --user-data-dir="$HOME/chrome-cors-dev" --disable-web-security</code>
+        </li>
+        <li><strong>Disable CORS in Brave</strong>: Same flags, different executable.<br>
+          <strong>macOS:</strong><br>
+          <code>open -n "/Applications/Brave Browser.app" --args --user-data-dir="$HOME/brave-cors-dev" --disable-web-security</code><br>
+          <strong>Windows (PowerShell):</strong><br>
+          <code>& "${env:LOCALAPPDATA}\BraveSoftware\Brave-Browser\Application\brave.exe" --user-data-dir="$env:USERPROFILE\brave-cors-dev" --disable-web-security</code><br>
+          <strong>Linux:</strong><br>
+          <code>brave-browser --user-data-dir="$HOME/brave-cors-dev" --disable-web-security</code><br>
+          <br>
+          <em>Warning: <code>--disable-web-security</code> disables browser security entirely. Only use this dedicated instance for this tool, not for general browsing. Close it when done.</em>
+        </li>
+        <li><strong>Same-Origin Deployment</strong>: Place this <code>index.html</code> file on your Nextcloud server's web directory so it is served from the same domain. No extension or flags needed.</li>
+      </ol>
+    </div>
+
+    <div class="info-box">
+      <strong>Requirements:</strong>
+      A modern browser (Chrome, Firefox, Edge, Safari), a Nextcloud server with the Forms app installed (API v3), and valid credentials with permission to read/create forms.
+    </div>
+
+    <div class="panels">
+      <!-- Export Panel -->
+      <div class="panel">
+        <h2>Export</h2>
+
+        <label for="exportFormId">Form ID, Hash, or URL</label>
+        <input type="text" id="exportFormId" placeholder="e.g. 42, rPXD5oJeNjJozgn6, or full URL">
+
+        <label for="exportServer">Server URL</label>
+        <input type="text" id="exportServer" placeholder="https://cloud.example.com">
+        <div class="url-warning" id="exportServerWarning"></div>
+
+        <label for="exportUser">Username</label>
+        <input type="text" id="exportUser" placeholder="admin">
+
+        <label for="exportPass">Password</label>
+        <input type="password" id="exportPass" placeholder="Password or App Token">
+
+        <label class="checkbox-label">
+          <input type="checkbox" id="exportSubmissions" checked>
+          Include existing submissions
+        </label>
+
+        <button class="btn" id="exportBtn">Export Form as JSON</button>
+        <button class="btn-cancel" id="exportCancelBtn">Cancel</button>
+
+        <div class="progress-container" id="exportProgress">
+          <progress id="exportProgressBar" value="0" max="100"></progress>
+          <div class="progress-label" id="exportProgressLabel"></div>
+        </div>
+
+        <div class="log-area" id="exportLog"></div>
+      </div>
+
+      <!-- Import Panel -->
+      <div class="panel">
+        <h2>Import</h2>
+
+        <label for="importFile">JSON File</label>
+        <input type="file" id="importFile" accept=".json,application/json">
+
+        <label for="importServer">Server URL</label>
+        <input type="text" id="importServer" placeholder="https://other-cloud.example.com">
+        <div class="url-warning" id="importServerWarning"></div>
+
+        <label for="importUser">Username</label>
+        <input type="text" id="importUser" placeholder="admin">
+
+        <label for="importPass">Password</label>
+        <input type="password" id="importPass" placeholder="Password or App Token">
+
+        <button class="btn" id="importBtn">Import Form from JSON</button>
+        <button class="btn-cancel" id="importCancelBtn">Cancel</button>
+
+        <div class="progress-container" id="importProgress">
+          <progress id="importProgressBar" value="0" max="100"></progress>
+          <div class="progress-label" id="importProgressLabel"></div>
+        </div>
+
+        <div class="log-area" id="importLog"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- API Path Constants ---
+
+    const API_BASE = '/ocs/v2.php/apps/forms';
+    const API_FORMS = '/api/v3/forms';
+    const API_FORM = (id) => '/api/v3/forms/' + id;
+    const API_FORM_QUESTIONS = (formId) => '/api/v3/forms/' + formId + '/questions';
+    const API_FORM_QUESTION = (formId, qId) => '/api/v3/forms/' + formId + '/questions/' + qId;
+    const API_FORM_QUESTION_OPTIONS = (formId, qId) => '/api/v3/forms/' + formId + '/questions/' + qId + '/options';
+    const API_FORM_SUBMISSIONS = (formId) => '/api/v3/forms/' + formId + '/submissions';
+
+    // --- LocalStorage Keys ---
+
+    const LS_EXPORT_SERVER = 'ncforms_exportServer';
+    const LS_EXPORT_USER = 'ncforms_exportUser';
+    const LS_IMPORT_SERVER = 'ncforms_importServer';
+    const LS_IMPORT_USER = 'ncforms_importUser';
+
+    // --- Cancellation State ---
+
+    let currentExportController = null;
+    let currentImportController = null;
+
+    // --- Credential Helper ---
+
+    function cleanServerUrl(url) {
+      // Strip /apps/forms/... suffix so users can paste a full Nextcloud Forms URL as server
+      return url.replace(/\/apps\/forms\/?.*$/i, '');
+    }
+
+    function getCredentials(prefix) {
+      return {
+        server: cleanServerUrl(document.getElementById(prefix + 'Server').value.trim()),
+        user: document.getElementById(prefix + 'User').value.trim(),
+        pass: document.getElementById(prefix + 'Pass').value,
+      };
+    }
+
+    // --- URL Validation ---
+
+    function validateServerUrl(url, warningElementId) {
+      const warningEl = document.getElementById(warningElementId);
+      if (!url) {
+        warningEl.classList.remove('active');
+        return true;
+      }
+      if (!/^https?:\/\//i.test(url)) {
+        warningEl.textContent = 'URL must start with https:// (or http://)';
+        warningEl.classList.add('active');
+        return false;
+      }
+      if (/^http:\/\//i.test(url)) {
+        warningEl.textContent = 'Warning: Using HTTP sends credentials unencrypted. Use HTTPS if possible.';
+        warningEl.classList.add('active');
+        return true;
+      }
+      warningEl.classList.remove('active');
+      return true;
+    }
+
+    // --- Progress Bar Helpers ---
+
+    function showProgress(prefix, current, total, label) {
+      const container = document.getElementById(prefix + 'Progress');
+      const bar = document.getElementById(prefix + 'ProgressBar');
+      const labelEl = document.getElementById(prefix + 'ProgressLabel');
+      container.classList.add('active');
+      bar.max = total;
+      bar.value = current;
+      labelEl.textContent = label || (current + ' / ' + total);
+    }
+
+    function hideProgress(prefix) {
+      document.getElementById(prefix + 'Progress').classList.remove('active');
+    }
+
+    // --- Cancel Button Helpers ---
+
+    function showCancelButton(prefix) {
+      document.getElementById(prefix + 'CancelBtn').classList.add('active');
+    }
+
+    function hideCancelButton(prefix) {
+      document.getElementById(prefix + 'CancelBtn').classList.remove('active');
+    }
+
+    // --- LocalStorage Helpers ---
+
+    function saveCredentials(prefix) {
+      const serverKey = prefix === 'export' ? LS_EXPORT_SERVER : LS_IMPORT_SERVER;
+      const userKey = prefix === 'export' ? LS_EXPORT_USER : LS_IMPORT_USER;
+      const server = document.getElementById(prefix + 'Server').value.trim();
+      const user = document.getElementById(prefix + 'User').value.trim();
+      if (server) localStorage.setItem(serverKey, server);
+      if (user) localStorage.setItem(userKey, user);
+    }
+
+    function loadCredentials() {
+      const exportServer = localStorage.getItem(LS_EXPORT_SERVER);
+      const exportUser = localStorage.getItem(LS_EXPORT_USER);
+      const importServer = localStorage.getItem(LS_IMPORT_SERVER);
+      const importUser = localStorage.getItem(LS_IMPORT_USER);
+      if (exportServer) document.getElementById('exportServer').value = exportServer;
+      if (exportUser) document.getElementById('exportUser').value = exportUser;
+      if (importServer) document.getElementById('importServer').value = importServer;
+      if (importUser) document.getElementById('importUser').value = importUser;
+    }
+
+    // --- Utility Functions ---
+
+    function buildUrl(serverUrl, path) {
+      const base = serverUrl.replace(/\/+$/, '');
+      return base + API_BASE + path;
+    }
+
+    function buildHeaders(username, password) {
+      return {
+        'Authorization': 'Basic ' + btoa(username + ':' + password),
+        'OCS-APIRequest': 'true',
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      };
+    }
+
+    async function apiRequest(method, serverUrl, path, username, password, body, signal) {
+      const url = buildUrl(serverUrl, path);
+      const options = {
+        method,
+        headers: buildHeaders(username, password),
+      };
+      if (body !== undefined && body !== null) {
+        options.body = JSON.stringify(body);
+      }
+      if (signal) {
+        options.signal = signal;
+      }
+
+      let response;
+      try {
+        response = await fetch(url, options);
+      } catch (err) {
+        if (err.name === 'AbortError') {
+          throw new Error('Operation cancelled by user.');
+        }
+        if (err instanceof TypeError) {
+          throw new Error('Network error — could not reach the server. If your server is on a different domain, configure a CORS proxy above.');
+        }
+        throw err;
+      }
+
+      const text = await response.text();
+      let json;
+      try {
+        json = JSON.parse(text);
+      } catch {
+        throw new Error('Server returned non-JSON response (HTTP ' + response.status + '): ' + text.substring(0, 200));
+      }
+
+      const statusCode = json?.ocs?.meta?.statuscode || response.status;
+      if (statusCode === 401) throw new Error('Authentication failed. Check username and password.');
+      if (statusCode === 403) throw new Error('Access denied. You may not have permission for this operation.');
+      if (statusCode === 404) throw new Error('Not found. Check the Form ID and server URL.');
+      if (statusCode >= 400) throw new Error('API error (HTTP ' + statusCode + '): ' + (json?.ocs?.meta?.message || text.substring(0, 200)));
+
+      return json?.ocs?.data;
+    }
+
+    function log(elementId, message, type) {
+      const el = document.getElementById(elementId);
+      const span = document.createElement('span');
+      span.className = 'log-' + type;
+      span.textContent = message + '\n';
+      el.appendChild(span);
+      el.scrollTop = el.scrollHeight;
+    }
+
+    function clearLog(elementId) {
+      document.getElementById(elementId).replaceChildren();
+    }
+
+    function sanitizeFormData(data) {
+      const sortedRaw = [...(data.questions || [])].sort((a, b) => a.order - b.order);
+
+      // Build map from original question ID to sorted index (for submission mapping)
+      const questionIdToIndex = {};
+      sortedRaw.forEach((q, i) => { questionIdToIndex[q.id] = i; });
+
+      const questions = sortedRaw.map(q => {
+          const question = {
+            type: q.type,
+            text: q.text,
+            name: q.name || '',
+            isRequired: q.isRequired || false,
+            order: q.order,
+            extraSettings: q.extraSettings || {},
+          };
+          if (q.options && q.options.length > 0) {
+            question.options = [...q.options]
+              .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+              .map(o => ({ text: o.text, order: o.order }));
+          } else {
+            question.options = [];
+          }
+          return question;
+        });
+
+      return {
+        title: data.title || '',
+        description: data.description || '',
+        questions,
+        questionIdToIndex,
+      };
+    }
+
+    function sanitizeSubmissions(submissions, questionIdToIndex) {
+      return submissions.map(sub => {
+        const answersByIndex = {};
+        for (const answer of (sub.answers || [])) {
+          const index = questionIdToIndex[answer.questionId];
+          if (index === undefined) continue;
+          if (!answersByIndex[index]) answersByIndex[index] = [];
+          answersByIndex[index].push(answer.text);
+        }
+        return {
+          userId: sub.userId || '',
+          timestamp: sub.timestamp || 0,
+          answers: answersByIndex,
+        };
+      });
+    }
+
+    function downloadJson(data, filename) {
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function readFile(fileInput) {
+      return new Promise((resolve, reject) => {
+        const file = fileInput.files[0];
+        if (!file) {
+          reject(new Error('No file selected.'));
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error('Failed to read file.'));
+        reader.readAsText(file);
+      });
+    }
+
+    function slugify(text) {
+      return text.toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .substring(0, 40);
+    }
+
+    // --- Parse form URL or ID/Hash ---
+
+    function isNumeric(value) {
+      return /^\d+$/.test(value);
+    }
+
+    function parseFormInput(input) {
+      // Check if input is a full URL like https://server.com/nextcloud/apps/forms/HASH/submit
+      const urlMatch = input.match(/^(https?:\/\/.+?)\/apps\/forms\/([a-zA-Z0-9]+)/);
+      if (urlMatch) {
+        return { server: urlMatch[1], formIdOrHash: urlMatch[2] };
+      }
+      // Otherwise treat as plain ID or hash
+      return { server: null, formIdOrHash: input };
+    }
+
+    async function resolveFormId(server, user, pass, input, logId, signal) {
+      if (isNumeric(input)) {
+        return input;
+      }
+      // Input is a hash — list all forms and find the matching one
+      log(logId, 'Resolving hash "' + input + '" to form ID ...', 'info');
+      const forms = await apiRequest('GET', server, API_FORMS, user, pass, null, signal);
+      const match = forms.find(f => f.hash === input);
+      if (!match) {
+        throw new Error('No form found with hash "' + input + '". Make sure you own this form or have access to it.');
+      }
+      log(logId, '  Found: "' + match.title + '" (ID: ' + match.id + ')', 'success');
+      return match.id;
+    }
+
+    // --- Export Logic ---
+
+    async function exportForm() {
+      const creds = getCredentials('export');
+      let server = creds.server;
+      const user = creds.user;
+      const pass = creds.pass;
+      const rawInput = document.getElementById('exportFormId').value.trim();
+
+      if (!user || !pass || !rawInput) {
+        clearLog('exportLog');
+        log('exportLog', 'Please fill in all fields.', 'error');
+        return;
+      }
+
+      // Parse URL if a full form URL was pasted
+      const parsed = parseFormInput(rawInput);
+      const formIdInput = parsed.formIdOrHash;
+      if (parsed.server) {
+        server = parsed.server;
+        document.getElementById('exportServer').value = server;
+      }
+
+      if (!server) {
+        clearLog('exportLog');
+        log('exportLog', 'Please provide a Server URL or paste a full form URL.', 'error');
+        return;
+      }
+
+      if (!validateServerUrl(server, 'exportServerWarning')) {
+        return;
+      }
+
+      const btn = document.getElementById('exportBtn');
+      btn.disabled = true;
+      clearLog('exportLog');
+      currentExportController = new AbortController();
+      const signal = currentExportController.signal;
+      showCancelButton('export');
+
+      const includeSubmissions = document.getElementById('exportSubmissions').checked;
+      const exportTotal = includeSubmissions ? 3 : 2;
+      let exportStep = 0;
+
+      try {
+        exportStep++;
+        showProgress('export', exportStep, exportTotal, 'Resolving form ID...');
+        const formId = await resolveFormId(server, user, pass, formIdInput, 'exportLog', signal);
+
+        exportStep++;
+        showProgress('export', exportStep, exportTotal, 'Fetching form data...');
+        log('exportLog', 'Fetching form #' + formId + ' ...', 'info');
+        const data = await apiRequest('GET', server, API_FORM(formId), user, pass, null, signal);
+
+        const { questionIdToIndex, ...form } = sanitizeFormData(data);
+
+        // Fetch submissions if checkbox is checked
+        let submissions = [];
+        if (includeSubmissions) {
+          exportStep++;
+          showProgress('export', exportStep, exportTotal, 'Fetching submissions...');
+          log('exportLog', 'Fetching submissions ...', 'info');
+          const subData = await apiRequest('GET', server, API_FORM_SUBMISSIONS(formId), user, pass, null, signal);
+          submissions = sanitizeSubmissions(subData.submissions || [], questionIdToIndex);
+        }
+
+        const exportData = {
+          exportVersion: 1,
+          exportedAt: new Date().toISOString(),
+          sourceServer: server,
+          form,
+          submissions,
+        };
+
+        const filename = 'form-' + formId + '-' + slugify(form.title || 'untitled') + '.json';
+        downloadJson(exportData, filename);
+
+        saveCredentials('export');
+        log('exportLog', 'Exported "' + form.title + '" with ' + form.questions.length + ' question(s)' + (submissions.length > 0 ? ' and ' + submissions.length + ' submission(s)' : '') + '.', 'success');
+        log('exportLog', 'File saved as: ' + filename, 'success');
+      } catch (err) {
+        log('exportLog', 'Export failed: ' + err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        currentExportController = null;
+        hideCancelButton('export');
+        hideProgress('export');
+      }
+    }
+
+    // --- Import Logic ---
+
+    async function importForm() {
+      const { server, user, pass } = getCredentials('import');
+      const fileInput = document.getElementById('importFile');
+
+      if (!server || !user || !pass) {
+        clearLog('importLog');
+        log('importLog', 'Please fill in all fields.', 'error');
+        return;
+      }
+
+      if (!validateServerUrl(server, 'importServerWarning')) {
+        return;
+      }
+
+      let fileContent;
+      try {
+        fileContent = await readFile(fileInput);
+      } catch (err) {
+        clearLog('importLog');
+        log('importLog', err.message, 'error');
+        return;
+      }
+
+      let exportData;
+      try {
+        exportData = JSON.parse(fileContent);
+      } catch {
+        clearLog('importLog');
+        log('importLog', 'Invalid JSON file. Please select a valid export file.', 'error');
+        return;
+      }
+
+      if (exportData.exportVersion !== 1) {
+        clearLog('importLog');
+        log('importLog', 'Unsupported export format version ' + exportData.exportVersion + '. This tool supports version 1.', 'error');
+        return;
+      }
+
+      const form = exportData.form;
+      if (!form || !form.title || !Array.isArray(form.questions)) {
+        clearLog('importLog');
+        log('importLog', 'Invalid export file: missing form data.', 'error');
+        return;
+      }
+
+      const btn = document.getElementById('importBtn');
+      btn.disabled = true;
+      clearLog('importLog');
+      currentImportController = new AbortController();
+      const signal = currentImportController.signal;
+      showCancelButton('import');
+
+      const submissions = exportData.submissions || [];
+      const progressTotal = 2 + form.questions.length + 1 + submissions.length;
+      let progressCurrent = 0;
+
+      let newFormId = null;
+      let importedCount = 0;
+      let skippedCount = 0;
+
+      try {
+        // Create new form
+        log('importLog', '[Create] Creating new form ...', 'info');
+        const created = await apiRequest('POST', server, API_FORMS, user, pass, {}, signal);
+        newFormId = created.id;
+        progressCurrent++;
+        showProgress('import', progressCurrent, progressTotal, 'Creating form...');
+        log('importLog', '  Form created (ID: ' + newFormId + ')', 'success');
+
+        // Set title and description
+        log('importLog', '[Setup] Setting title and description ...', 'info');
+        const keyValuePairs = { title: form.title };
+        if (form.description) {
+          keyValuePairs.description = form.description;
+        }
+        await apiRequest('PATCH', server, API_FORM(newFormId), user, pass, { keyValuePairs }, signal);
+        progressCurrent++;
+        showProgress('import', progressCurrent, progressTotal, 'Setting properties...');
+        log('importLog', '  Title: "' + form.title + '"', 'success');
+
+        // Create questions
+        const sortedQuestions = [...form.questions].sort((a, b) => a.order - b.order);
+        const newQuestionIds = [];
+
+        for (let i = 0; i < sortedQuestions.length; i++) {
+          const q = sortedQuestions[i];
+          log('importLog', '[Question ' + (i + 1) + '/' + sortedQuestions.length + '] Creating: "' + q.text.substring(0, 50) + '" ...', 'info');
+
+          // Create question
+          const newQ = await apiRequest('POST', server, API_FORM_QUESTIONS(newFormId), user, pass, {
+            type: q.type,
+            text: q.text,
+          }, signal);
+          const newQId = newQ.id;
+          newQuestionIds.push(newQId);
+
+          // Update question properties
+          const qPairs = {};
+          if (q.isRequired) qPairs.isRequired = q.isRequired;
+          if (q.name) qPairs.name = q.name;
+          if (q.extraSettings && Object.keys(q.extraSettings).length > 0) qPairs.extraSettings = q.extraSettings;
+
+          if (Object.keys(qPairs).length > 0) {
+            await apiRequest('PATCH', server, API_FORM_QUESTION(newFormId, newQId), user, pass, { keyValuePairs: qPairs }, signal);
+          }
+
+          // Create options
+          if (q.options && q.options.length > 0) {
+            const sortedOptions = [...q.options].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+            const optionTexts = sortedOptions.map(o => o.text);
+            await apiRequest('POST', server, API_FORM_QUESTION_OPTIONS(newFormId, newQId), user, pass, { optionTexts }, signal);
+          }
+
+          progressCurrent++;
+          showProgress('import', progressCurrent, progressTotal, 'Question ' + (i + 1) + '/' + sortedQuestions.length);
+          log('importLog', '  Question created (type: ' + q.type + ', options: ' + (q.options?.length || 0) + ')', 'success');
+        }
+
+        // Reorder questions
+        log('importLog', '[Reorder] Reordering questions ...', 'info');
+        if (newQuestionIds.length > 1) {
+          await apiRequest('PATCH', server, API_FORM_QUESTIONS(newFormId), user, pass, { newOrder: newQuestionIds }, signal);
+        }
+        progressCurrent++;
+        showProgress('import', progressCurrent, progressTotal, 'Reordering...');
+        log('importLog', '  Order set', 'success');
+
+        // Import submissions
+        const optionBasedTypes = ['dropdown', 'multiple', 'multiple_unique'];
+
+        if (submissions.length > 0) {
+          log('importLog', '[Prepare] Preparing form for submission import ...', 'info');
+          await apiRequest('PATCH', server, API_FORM(newFormId), user, pass, { keyValuePairs: { submitMultiple: true } }, signal);
+
+          // Temporarily set all questions to not required so incomplete submissions can be imported
+          const requiredQuestionIndices = [];
+          for (let qi = 0; qi < sortedQuestions.length; qi++) {
+            if (sortedQuestions[qi].isRequired) {
+              requiredQuestionIndices.push(qi);
+              await apiRequest('PATCH', server, API_FORM_QUESTION(newFormId, newQuestionIds[qi]), user, pass, { keyValuePairs: { isRequired: false } }, signal);
+            }
+          }
+          log('importLog', '  Done', 'success');
+
+          // Fetch the created form to get server-assigned option IDs
+          log('importLog', '  Fetching option IDs from server ...', 'info');
+          const createdForm = await apiRequest('GET', server, API_FORM(newFormId), user, pass, null, signal);
+          const serverQuestions = (createdForm.questions || []).sort((a, b) => a.order - b.order);
+
+          // Build mapping: for each option-based question, map original option text -> server option ID
+          // The submission API expects option IDs (numbers), not option text strings
+          const optionTextToId = {}; // questionIndex -> { optionText -> optionId }
+
+          for (let qi = 0; qi < sortedQuestions.length; qi++) {
+            const q = sortedQuestions[qi];
+            if (!optionBasedTypes.includes(q.type)) continue;
+
+            const serverQ = serverQuestions[qi];
+            if (!serverQ || !serverQ.options) continue;
+
+            optionTextToId[qi] = {};
+            for (const opt of serverQ.options) {
+              optionTextToId[qi][opt.text] = opt.id;
+            }
+          }
+
+          // Add missing options (answers from submissions that don't exist as options on server)
+          for (let qi = 0; qi < sortedQuestions.length; qi++) {
+            if (!optionBasedTypes.includes(sortedQuestions[qi].type)) continue;
+            const idMap = optionTextToId[qi] || {};
+            const missingOptions = new Set();
+
+            for (const sub of submissions) {
+              const values = sub.answers[qi];
+              if (!values) continue;
+              for (const val of values) {
+                if (idMap[val] === undefined) {
+                  missingOptions.add(val);
+                }
+              }
+            }
+
+            if (missingOptions.size > 0) {
+              const missing = [...missingOptions];
+              log('importLog', '  Adding ' + missing.length + ' missing option(s) to "' + sortedQuestions[qi].text.substring(0, 40) + '": ' + missing.join(', '), 'info');
+              await apiRequest('POST', server, API_FORM_QUESTION_OPTIONS(newFormId, newQuestionIds[qi]), user, pass, { optionTexts: missing }, signal);
+              // Re-fetch form to get the new option IDs
+              const updatedForm = await apiRequest('GET', server, API_FORM(newFormId), user, pass, null, signal);
+              const updatedQuestions = (updatedForm.questions || []).sort((a, b) => a.order - b.order);
+              const updatedQ = updatedQuestions[qi];
+              if (updatedQ && updatedQ.options) {
+                optionTextToId[qi] = {};
+                for (const opt of updatedQ.options) {
+                  optionTextToId[qi][opt.text] = opt.id;
+                }
+              }
+            }
+          }
+
+          log('importLog', '', 'info');
+          log('importLog', 'Importing ' + submissions.length + ' submission(s) ...', 'info');
+          log('importLog', '  Note: All submissions will be attributed to the importing user.', 'info');
+
+          for (let i = 0; i < submissions.length; i++) {
+            const sub = submissions[i];
+
+            // Map question indices back to new question IDs, and use option IDs for option-based questions
+            const answers = {};
+            for (const [index, values] of Object.entries(sub.answers)) {
+              const qi = parseInt(index);
+              const newQId = newQuestionIds[qi];
+              if (newQId === undefined) continue;
+
+              const idMap = optionTextToId[qi];
+              if (idMap) {
+                // For option-based questions: map text to option IDs
+                answers[newQId] = values.map(v => {
+                  const id = idMap[v];
+                  if (id !== undefined) return id;
+                  // Try trimmed match as fallback
+                  const trimmed = v.trim();
+                  for (const [text, optId] of Object.entries(idMap)) {
+                    if (text.trim() === trimmed) return optId;
+                  }
+                  return v; // fallback to text if no match found
+                });
+              } else {
+                answers[newQId] = values;
+              }
+            }
+
+            try {
+              await apiRequest('POST', server, API_FORM_SUBMISSIONS(newFormId), user, pass, { answers }, signal);
+              importedCount++;
+              log('importLog', '[Submission ' + (i + 1) + '/' + submissions.length + '] imported (original user: ' + (sub.userId || 'anonymous') + ')', 'success');
+            } catch (subErr) {
+              skippedCount++;
+              log('importLog', '[Submission ' + (i + 1) + '/' + submissions.length + '] skipped: ' + subErr.message, 'error');
+            }
+
+            progressCurrent++;
+            showProgress('import', progressCurrent, progressTotal, 'Submission ' + (i + 1) + '/' + submissions.length);
+          }
+
+          if (skippedCount > 0) {
+            log('importLog', '', 'info');
+            log('importLog', skippedCount + ' submission(s) skipped due to validation errors.', 'error');
+          }
+
+          // Restore isRequired on questions that were originally required
+          if (requiredQuestionIndices.length > 0) {
+            log('importLog', 'Restoring required fields ...', 'info');
+            for (const qi of requiredQuestionIndices) {
+              await apiRequest('PATCH', server, API_FORM_QUESTION(newFormId, newQuestionIds[qi]), user, pass, { keyValuePairs: { isRequired: true } }, signal);
+            }
+            log('importLog', '  Done', 'success');
+          }
+        }
+
+        saveCredentials('import');
+        log('importLog', '', 'info');
+        log('importLog', 'Import complete! Form "' + form.title + '" created with ' + form.questions.length + ' question(s). New form ID: ' + newFormId, 'success');
+        if (submissions.length > 0) {
+          log('importLog', 'Submissions: ' + importedCount + ' imported, ' + skippedCount + ' skipped.', skippedCount === 0 ? 'success' : 'error');
+        }
+
+      } catch (err) {
+        log('importLog', '', 'info');
+        log('importLog', 'Import failed: ' + err.message, 'error');
+        if (newFormId) {
+          log('importLog', 'A partially created form (ID: ' + newFormId + ') may exist on the server. You may need to delete it manually.', 'error');
+        }
+      } finally {
+        btn.disabled = false;
+        currentImportController = null;
+        hideCancelButton('import');
+        hideProgress('import');
+      }
+    }
+
+    // --- Event Bindings ---
+
+    document.getElementById('exportBtn').addEventListener('click', exportForm);
+    document.getElementById('importBtn').addEventListener('click', importForm);
+
+    document.getElementById('exportCancelBtn').addEventListener('click', () => {
+      if (currentExportController) {
+        currentExportController.abort();
+      }
+    });
+
+    document.getElementById('importCancelBtn').addEventListener('click', () => {
+      if (currentImportController) {
+        currentImportController.abort();
+      }
+    });
+
+    document.getElementById('exportServer').addEventListener('input', (e) => {
+      validateServerUrl(e.target.value.trim(), 'exportServerWarning');
+    });
+
+    document.getElementById('importServer').addEventListener('input', (e) => {
+      validateServerUrl(e.target.value.trim(), 'importServerWarning');
+    });
+
+    loadCredentials();
+  </script>
+</body>
+</html>
